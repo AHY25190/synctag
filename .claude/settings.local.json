@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"C:\\\\Users\\\\USER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--AI-Automation-SynctagUIAutomation\\\\8135bdaf-d5fe-4d32-a0a5-5f4bcbf42292\\\\scratchpad\")",
+      "Bash(node explore4.js)"
+    ]
+  }
+}

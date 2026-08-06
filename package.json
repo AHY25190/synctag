@@ -1,0 +1,22 @@
+{
+  "name": "synctaguiautomation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.1.2",
+    "eslint": "^10.8.0",
+    "globals": "^17.9.0"
+  },
+  "dependencies": {
+    "imap": "^0.8.19",
+    "mailparser": "^3.9.14"
+  }
+}
