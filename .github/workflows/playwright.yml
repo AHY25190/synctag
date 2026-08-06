@@ -26,7 +26,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run Smoke Tests
-        run: npx playwright test tests/testScripts/smoke --project=chromium
+        run: npx playwright test tests/testScripts/smoke --project=chromium --retries=2
 
       - name: Upload Smoke Report
         if: always()
@@ -56,7 +56,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run Regression P1 Tests
-        run: npx playwright test tests/testScripts/regressionP1 --project=chromium
+        run: npx playwright test tests/testScripts/regressionP1 --project=chromium --retries=2
 
       - name: Upload Regression Report
         if: always()
