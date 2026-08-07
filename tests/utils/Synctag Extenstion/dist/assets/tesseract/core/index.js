@@ -1,0 +1,1 @@
+module.exports="object"==typeof WebAssembly?require("./tesseract-core"):require("./tesseract-core.asm");

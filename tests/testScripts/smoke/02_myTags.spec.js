@@ -12,7 +12,7 @@ test('My Tags page opens, and a tag can be created and deleted', async ({ page }
 
     await test.step('Create a new tag', async () => {
         await myTags.clickNewTag();
-        await myTags.createTag(trigger, 'Smoke test tag description', 'Smoke test tag content');
+        await myTags.createTextTag(trigger, 'Smoke test tag description', 'Smoke test tag content');
         await myTags.verifyTagCreated(trigger);
     });
 

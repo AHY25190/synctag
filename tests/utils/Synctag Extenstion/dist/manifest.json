@@ -1,0 +1,119 @@
+{
+  "manifest_version": 3,
+  "name": "Synctag - AI Text Expander, Password Manager & Productivity Extension",
+  "version": "1.1.5",
+  "description": "AI powered text expander with smart $ tag shortcuts, password vault and workflow automation to boost productivity.",
+
+  "externally_connectable": {
+    "matches": [
+      "https://synctag.com/*",
+      "https://www.synctag.com/*",
+      "https://app.synctag.com/*",
+      "https://devextension.synctag.com/*",
+      "https://devextsnapi.synctag.com/*",
+      "https://extensionapi.synctag.com/*"
+    ]
+  },
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "contextMenus",
+    "scripting",
+    "webNavigation",
+    "tabs",
+    "notifications",
+    "alarms",
+    "nativeMessaging",
+    "downloads"
+  ],
+
+  "host_permissions": [
+    "<all_urls>",
+    "https://devextension.synctag.com/*",
+    "https://devextsnapi.synctag.com/*",
+    "https://extensionapi.synctag.com/*"
+  ],
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+
+  "background": {
+    "service_worker": "background/background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "exclude_matches": [
+        "*://api.razorpay.com/*",
+        "*://*.razorpay.com/*",
+        "*://accounts.google.com/*",
+        "*://myaccount.google.com/*",
+        "*://chrome.google.com/*",
+        "*://chromewebstore.google.com/*",
+        "https://www.googletagmanager.com/*",
+        "https://api.razorpay.com/*",
+         "*://*.doubleclick.net/*",
+        "*://googleads.g.doubleclick.net/*",
+        "*://*.googlesyndication.com/*",
+        "*://*.googleadservices.com/*",
+        "*://*.adnxs.com/*",
+        "*://*.moatads.com/*",
+        "*://*.amazon-adsystem.com/*"
+        
+      ],
+      "js": ["content/content.js"],
+      "css": ["content/content.css"],
+      "run_at": "document_end",
+      "all_frames": true,
+      "match_about_blank": true,
+      "match_origin_as_fallback": true
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Synctag",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "commands": {
+    "trigger-macro": {
+      "suggested_key": {
+        "default": "Alt+Shift+4"
+      },
+      "description": "Trigger macro suggestions"
+    }
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content/content.css",
+        "assets/*.svg",
+        "assets/*.js",
+        "assets/tesseract/*",
+        "icons/*.png",
+        "icons/*.svg",
+        "viewer/viewer.html",
+        "options/options.html"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
+

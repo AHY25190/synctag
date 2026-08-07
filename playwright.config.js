@@ -50,19 +50,27 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
 
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
+      testIgnore: '**/regressionP1/myTags/**',
     },
 
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+      testIgnore: '**/regressionP1/myTags/**',
+    },
+
+    {
+      /* These tests load the real Synctag browser extension in a persistent Chromium
+       * context (heavy: a real window per test), so they run one at a time instead of
+       * competing for CPU/network with each other. */
+      name: 'chromium',
+      testDir: './tests/testScripts/regressionP1/',
+      workers: 1,
+      use: { ...devices['Desktop Chrome'] },
     },
 
     /* Test against mobile viewports. */
