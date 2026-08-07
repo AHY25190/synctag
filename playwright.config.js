@@ -68,7 +68,7 @@ export default defineConfig({
        * context (heavy: a real window per test), so they run one at a time instead of
        * competing for CPU/network with each other. */
       name: 'chromium',
-      testDir: './tests/testScripts/regressionP1/',
+      testDir: './tests/testScripts/',
       workers: 1,
       use: { ...devices['Desktop Chrome'] },
     },
