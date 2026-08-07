@@ -55,6 +55,10 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install chromium --with-deps
 
+      # Run login first to generate session storage/state
+      - name: Generate Login Session
+        run: npx playwright test tests/testScripts/smoke/01_emailLogin.spec.js --project=chromium --retries=2
+
       - name: Run Regression P1 Tests
         run: npx playwright test tests/testScripts/regressionP1 --project=chromium --retries=2
 
