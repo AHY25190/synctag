@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const base = require('@playwright/test');
 
-const EXTENSION_PATH = path.join(__dirname, '../utils/Synctag Extenstion/dist');
+const EXTENSION_PATH = path.join(__dirname, '../utils/extension/synctagExtension');
 const STORAGE_STATE_PATH = path.join(__dirname, '../../storageState.json');
 const SITE_ORIGIN = 'https://devextension.synctag.com';
 
@@ -31,11 +31,26 @@ exports.test = base.test.extend({
         if (siteOrigin) {
             const page = context.pages()[0] || await context.newPage();
             await page.goto('/tags', { waitUntil: 'domcontentloaded' });
+            // cache.* entries (e.g. cache.publicMacros, several MB) are rebuilt by the app
+            // and can exceed Chrome's localStorage quota, so only the session keys are restored.
+            const sessionItems = siteOrigin.localStorage.filter(item => !item.name.startsWith('cache.'));
+
+            // The extension picks up the session from the top-level authToken/refreshToken keys,
+            // but those can hold a stale pair the API rejects (the extension then logs itself out).
+            // The website's own `auth` object holds the live pair, so mirror it into those keys.
+            const authItem = sessionItems.find(item => item.name === 'auth');
+            const auth = authItem ? JSON.parse(authItem.value) : null;
+            if (auth?.token && auth?.refreshToken) {
+                for (const item of sessionItems) {
+                    if (item.name === 'authToken') item.value = auth.token;
+                    if (item.name === 'refreshToken') item.value = auth.refreshToken;
+                }
+            }
             await page.evaluate((items) => {
                 for (const item of items) {
                     localStorage.setItem(item.name, item.value);
                 }
-            }, siteOrigin.localStorage);
+            }, sessionItems);
             await page.reload({ waitUntil: 'domcontentloaded' });
         }
 

@@ -1,13 +1,15 @@
 const { test } = require('../../../fixtures/extensionFixture');
 const { MyTags } = require('../../../pages/myTags');
+const { Signin } = require('../../../pages/signIn');
 const { verifyTagInExtension, verifyTagNotInExtension } = require('../../../utils/verifyInExtension');
 
 test('Create, edit and delete a Text tag', async ({ page, context, extensionId }) => {
     const myTags = new MyTags(page);
+    const signIn = new Signin(page);
     const trigger = `textTag${Date.now()}`;
 
     await test.step('Create the tag', async () => {
-        await page.goto('/tags');
+        await signIn.verifySignedIn('johnfigerro@gmail.com');
         await myTags.verifyPageOpened();
         await myTags.clickNewTag();
         await myTags.createTextTag(trigger, 'Regression Text tag', 'This is a Text tag created by regression automation.');

@@ -1,13 +1,15 @@
 const { test } = require('../../../fixtures/extensionFixture');
 const { MyTags } = require('../../../pages/myTags');
+const { Signin } = require('../../../pages/signIn');
 const { verifyTagInExtension, verifyTagNotInExtension } = require('../../../utils/verifyInExtension');
 
 test('Create, edit and delete an API tag', async ({ page, context, extensionId }) => {
     const myTags = new MyTags(page);
+    const signIn = new Signin(page);
     const trigger = `apiTag${Date.now()}`;
 
     await test.step('Create the tag', async () => {
-        await page.goto('/tags');
+        await signIn.verifySignedIn('johnfigerro@gmail.com');
         await myTags.verifyPageOpened();
         await myTags.clickNewTag();
         await myTags.createApiTag(trigger, 'Regression API tag', 'GET', 'https://jsonplaceholder.typicode.com/todos/1');

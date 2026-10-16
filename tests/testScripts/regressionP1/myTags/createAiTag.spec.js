@@ -1,13 +1,16 @@
 const { test } = require('../../../fixtures/extensionFixture');
 const { MyTags } = require('../../../pages/myTags');
+const { Signin } = require('../../../pages/signIn')
 const { verifyTagInExtension, verifyTagNotInExtension } = require('../../../utils/verifyInExtension');
 
 test('Create, edit and delete an AI tag', async ({ page, context, extensionId }) => {
     const myTags = new MyTags(page);
     const trigger = `aiTag${Date.now()}`;
+    const signIn = new Signin(page);
 
     await test.step('Create the tag', async () => {
-        await page.goto('/tags');
+        await signIn.verifySignedIn('johnfigerro@gmail.com');
+        await myTags.open();
         await myTags.verifyPageOpened();
         await myTags.clickNewTag();
         await myTags.createAiTag(trigger, 'Regression AI tag', 'Summarize the selected text in one sentence.');

@@ -142,7 +142,7 @@ exports.MyTags = class MyTags {
             await applyEdit();
             await this.saveTag(trigger, description);
             try {
-                await expect(card.locator('.macro-trigger-value')).toHaveText(description, { timeout: 20000 });
+                await expect(card.locator('h3.macro-name')).toHaveText(description, { timeout: 20000 });
                 return;
             } catch (error) {
                 if (attempt === 3) {
@@ -198,13 +198,14 @@ exports.MyTags = class MyTags {
     // Verify a tag's card reflects its updated description
     async verifyTagUpdated(trigger, description){
         const card = this.page.locator('.macro-card').filter({ hasText: `$${trigger}` });
-        await expect(card.locator('.macro-trigger-value')).toHaveText(description, TIMEOUT);
+        await expect(card.locator('h3.macro-name')).toHaveText(description, TIMEOUT);
     }
 
-    // Delete a tag from its card (shift+click opens the delete confirmation)
+    // Delete a tag: open its editor from the card, click Delete, then confirm in the modal
     async deleteTag(trigger){
         await this.clearSelection();
-        await this.page.locator('.macro-card').filter({ hasText: `$${trigger}` }).click({ modifiers: ['Shift'] });
+        await this.page.locator('.macro-card').filter({ hasText: `$${trigger}` }).locator('h3.macro-name').click();
+        await this.page.locator('#tageditor-delete').click();
         await this.page.locator('.synctag-global-modal__footer button', { hasText: 'Delete' }).click();
     }
 

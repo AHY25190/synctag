@@ -1,6 +1,7 @@
 const path = require('path');
 const { test } = require('../../../fixtures/extensionFixture');
 const { MyTags } = require('../../../pages/myTags');
+const { Signin } = require('../../../pages/signIn');
 const { verifyTagInExtension, verifyTagNotInExtension } = require('../../../utils/verifyInExtension');
 
 const FILE_TAG_PATH = path.join(__dirname, '../../../utils/uploadfiles/testPdf.pdf');
@@ -8,10 +9,11 @@ const SECOND_FILE_TAG_PATH = path.join(__dirname, '../../../utils/uploadfiles/te
 
 test('Create, edit and delete a File tag', async ({ page, context, extensionId }) => {
     const myTags = new MyTags(page);
+    const signIn = new Signin(page);
     const trigger = `fileTag${Date.now()}`;
 
     await test.step('Create the tag', async () => {
-        await page.goto('/tags');
+        await signIn.verifySignedIn('johnfigerro@gmail.com');
         await myTags.verifyPageOpened();
         await myTags.clickNewTag();
         await myTags.createFileTag(trigger, 'Regression File tag', FILE_TAG_PATH);

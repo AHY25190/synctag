@@ -21,7 +21,7 @@ test('Register a new Synctag account via Email OTP', async ({ page, context }) =
     });
 
     await test.step('Click Get Started for free', async () => {
-        await homePage.clickGetStarted();
+        await homePage.clickSignin();
         await signIn.verifySignIn();
     });
 

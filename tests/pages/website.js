@@ -16,8 +16,8 @@ exports.website = class website {
     }
 
     // Click Get Started for free button
-    async clickGetStarted(){
-        await this.page.getByText("GET STARTED FOR FREE").click();
+    async clickSignin(){
+        await this.page.locator("a.site-header__signin").click();
     }
 
 }
