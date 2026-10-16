@@ -53,8 +53,8 @@ test('Log in to an existing Synctag account via Email OTP', async ({ page }) => 
     });
 
     await test.step('Verify successful login', async () => {
-        await expect(page).toHaveURL(/\/tags/);
-        await expect(page.getByRole('heading', { name: 'Tag Library' })).toBeVisible();
+        await expect(page).toHaveURL(/\/discover/);
+        await expect(page.locator("input.dc-landing-input")).toBeVisible();
     });
 
     await test.step('Save logged-in session for reuse by other tests', async () => {

@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { GlobalTags } = require('../../pages/globalTags');
 
-test('Global Tags page opens without any issues', async ({ page }) => {
+test('Marketplace page opens without any issues', async ({ page }) => {
     const globalTags = new GlobalTags(page);
 
     await page.goto('/tags');

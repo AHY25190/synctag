@@ -2,7 +2,7 @@ const { test } = require('@playwright/test');
 const { GlobalTags } = require('../../../pages/globalTags');
 const { Signin } = require('../../../pages/signIn');
 
-test('Create a monetized Global Text tag and pay its Trigger Name Cost via Razorpay (test mode)', async ({ page }) => {
+test('Create and update a monetized Global Text tag', async ({ page }) => {
     const globalTags = new GlobalTags(page);
     const signIn = new Signin(page);
     const trigger = `gTextTag${Date.now()}`;
@@ -22,5 +22,13 @@ test('Create a monetized Global Text tag and pay its Trigger Name Cost via Razor
 
     await test.step('Verify the tag was created', async () => {
         await globalTags.verifyTagCreated(trigger, 'Text');
+    });
+
+    await test.step('Edit the tag', async () => {
+        await globalTags.editTextTag(trigger, 'Regression Global Text tag (edited)', 'This Global Text tag was updated by regression automation.');
+    });
+
+    await test.step('Verify the tag was updated', async () => {
+        await globalTags.verifyTagUpdated(trigger, 'Regression Global Text tag (edited)');
     });
 });

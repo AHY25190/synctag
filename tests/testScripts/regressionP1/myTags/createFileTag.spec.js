@@ -14,6 +14,7 @@ test('Create, edit and delete a File tag', async ({ page, context, extensionId }
 
     await test.step('Create the tag', async () => {
         await signIn.verifySignedIn('johnfigerro@gmail.com');
+        await myTags.open();
         await myTags.verifyPageOpened();
         await myTags.clickNewTag();
         await myTags.createFileTag(trigger, 'Regression File tag', FILE_TAG_PATH);

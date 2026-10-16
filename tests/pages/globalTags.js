@@ -15,6 +15,9 @@ const RAZORPAY_TEST_CARDS = {
 };
 exports.RAZORPAY_TEST_CARDS = RAZORPAY_TEST_CARDS;
 
+// Invitation code required to create Marketplace tags (asked the first time Marketplace is picked)
+const INVITATION_CODE = 'FREE';
+
 exports.GlobalTags = class GlobalTags {
 
     /**
@@ -32,22 +35,45 @@ exports.GlobalTags = class GlobalTags {
 
     // Verify the Global Tags page opened without any issues
     async verifyPageOpened(){
-        await expect(this.page.locator('.tab-header h3')).toHaveText('Global Tags');
+        await expect(this.page.locator('.tab-header h3')).toHaveText('Marketplace');
     }
 
-    // Switch to the Marketplace tab (browse tags shared by other users)
+    // Go to the Marketplace (browse tags shared by other users) from the sidebar
     async goToMarketplace(){
-        await this.page.getByRole('tab', { name: 'Marketplace' }).click();
+        await this.open();
     }
 
-    // Switch to the My Global Tags tab (tags this account created or purchased)
-    async goToMyGlobalTags(){
-        await this.page.getByRole('tab', { name: 'My Global Tags' }).click();
+    // Go to a section of the Tag Library holding this account's Marketplace tags:
+    // 'My Listings' (tags it created) or 'Purchased' (tags it bought)
+    async goToMyGlobalTags(section){
+        await this.page.locator('#tabmenu-macros').click();
+        await this.page.getByRole('tablist', { name: 'Tag sections' }).getByRole('tab', { name: section }).click();
     }
 
-    // Click the Create Global Tag button to start creating a tag
+    // Start creating a Global (Marketplace) tag: My Tags > New Tag, then pick Marketplace as
+    // the tag kind. If the account is asked for an invitation code, apply the FREE code.
     async clickCreateGlobalTag(){
-        await this.page.locator('button.synctag-btn-primary', { hasText: 'Create Global Tag' }).click();
+        await this.page.locator('#tabmenu-macros').click();
+        await this.page.locator('button.synctag-btn-primary', { hasText: 'New Tag' }).click();
+        await this.page.getByRole('tablist', { name: 'Tag kind' }).getByRole('tab', { name: 'Marketplace' }).click();
+
+        const invitationInput = this.page.getByPlaceholder('Enter invitation code');
+        const invitationAsked = await invitationInput.waitFor({ timeout: 8000 }).then(() => true).catch(() => false);
+        if (invitationAsked) {
+            await invitationInput.fill(INVITATION_CODE);
+            await this.page.getByRole('button', { name: /apply code/i }).click();
+            await this.page.getByRole('button', { name: /got it/i }).click();
+        }
+    }
+
+    // Pick the tag's Marketplace categories (1-3 required) in the Select categories dialog
+    async selectCategories(categories = ['Technology']){
+        await this.page.locator('#macro-categories').click();
+        const dialog = this.page.locator('.synctag-global-modal.show').filter({ hasText: 'Select categories' });
+        for (const category of categories) {
+            await dialog.getByText(category, { exact: true }).click();
+        }
+        await dialog.getByRole('button', { name: /apply/i }).click();
     }
 
     // Switch the Create Tag form to a given type: Text, Form, AI, API, File, Authenticator or Browser
@@ -73,12 +99,13 @@ exports.GlobalTags = class GlobalTags {
         // "Trigger is available for global use" message once pricing is calculated.
         await expect(this.page.getByText('Trigger is available', { exact: true })).toBeVisible(TIMEOUT);
         await descriptionInput.fill(description);
+        await this.selectCategories();
     }
 
     // Switch the tag from Free to Monetize and set its sell price (INR). Only the buyer
     // pays this price later - the creator never goes through checkout for their own tag.
     async setMonetized(price){
-        await this.page.locator('input[name="sellType"][value="monetize"]').click();
+        await this.page.locator('label.monetize-option', { hasText: 'Monetize' }).click();
         await this.page.locator('#public-tag-price').fill(String(price));
     }
 
@@ -110,8 +137,37 @@ exports.GlobalTags = class GlobalTags {
     // Every Global Tag trigger carries a mandatory yearly "Trigger Name Cost", charged via
     // Razorpay. Saving pops a "Confirm Payment" dialog for it; call this right after saveTag()
     // to complete that charge with a recurring-capable test card so the tag itself gets saved.
+    // With the FREE invitation applied, saving instead shows a "Use a free global tag" dialog
+    // and the tag is created without any payment.
     async completeTriggerNameCostCheckout(){
-        await expect(this.page.getByText('Confirm Payment')).toBeVisible(TIMEOUT);
+        const createForFree = this.page.getByRole('button', { name: /create for free/i });
+        const confirmPayment = this.page.getByText('Confirm Payment');
+        await expect(createForFree.or(confirmPayment)).toBeVisible(TIMEOUT);
+        if (await createForFree.isVisible()) {
+            // The server rate-limits Marketplace tag creation per account (HTTP 429 with a
+            // Retry-After of many hours), and the app then silently stays on the Create Tag page.
+            // Fail fast with a clear reason instead of a "tag not found" timeout later on.
+            const rateLimited = this.page.waitForResponse(response =>
+                response.url().includes('/api/gateway')
+                && response.request().method() === 'POST'
+                && response.status() === 429, TIMEOUT).catch(() => null);
+            const created = this.page.waitForURL(url => !url.pathname.includes('/create'), TIMEOUT).then(() => null).catch(() => null);
+            await createForFree.click();
+
+            const limitedResponse = await Promise.race([created, rateLimited]);
+            if (limitedResponse) {
+                await this.page.waitForTimeout(2000);
+                if (this.page.url().includes('/create')) {
+                    const retryAfter = Number(limitedResponse.headers()['retry-after']);
+                    const retryHint = Number.isFinite(retryAfter)
+                        ? ` Retry after about ${(retryAfter / 3600).toFixed(1)} hours.`
+                        : '';
+                    throw new Error(`Marketplace tag creation was rate-limited by the server (HTTP 429), so the tag was not created.${retryHint}`);
+                }
+            }
+            return;
+        }
+        await expect(confirmPayment).toBeVisible(TIMEOUT);
         const proceedButton = this.page.getByRole('button', { name: 'PROCEED' });
         await expect(proceedButton).toBeVisible(TIMEOUT);
         await proceedButton.click();
@@ -144,7 +200,7 @@ exports.GlobalTags = class GlobalTags {
         await this.selectTagType('API');
         if (price) await this.setMonetized(price);
         await this.page.locator('#api-method').click();
-        await this.page.locator('.api-method-option', { hasText: method }).click();
+        await this.page.getByRole('listbox', { name: 'Select API method' }).getByRole('option', { name: method, exact: true }).click();
         await this.page.locator('#api-url').fill(url);
         await this.page.locator('#api-test-btn').click();
         await expect(this.page.locator('#api-response-preview')).toContainText('200 OK', TIMEOUT);
@@ -165,24 +221,37 @@ exports.GlobalTags = class GlobalTags {
     // Scan the Marketplace for the cheapest tag that still needs to be purchased (locked,
     // priced above zero) and return its trigger and price. A user's own tags never show up
     // here, so this always targets a tag owned by someone else.
-    async findCheapestPurchasableTag(){
+    // The Marketplace is paginated (20 tags a page), so this scans up to maxPages pages.
+    async findCheapestPurchasableTag(maxPages = 10){
         await this.goToMarketplace();
         await this.verifyPageOpened();
 
-        const cards = this.page.locator('.macro-card.global-macro').filter({
+        const allCards = this.page.locator('.macro-card.global-macro');
+        const cards = allCards.filter({
             has: this.page.getByRole('button', { name: 'Buy' }),
         });
-        const count = await cards.count();
+        await expect(allCards.first()).toBeVisible(TIMEOUT);
 
         let cheapest = null;
-        for (let i = 0; i < count; i++) {
-            const card = cards.nth(i);
-            const priceText = await card.locator('.macro-footer-purchase span').first().innerText();
-            const price = Number(priceText.replace(/[^\d.]/g, ''));
-            if (Number.isFinite(price) && (!cheapest || price < cheapest.price)) {
-                const triggerText = await card.locator('.macro-trigger-value').innerText();
-                cheapest = { price, trigger: triggerText.replace(/^\$/, ''), card };
+        for (let pageNumber = 1; pageNumber <= maxPages; pageNumber++) {
+            const count = await cards.count();
+            for (let i = 0; i < count; i++) {
+                const card = cards.nth(i);
+                const priceText = await card.locator('.macro-footer-purchase span').first().innerText();
+                const price = Number(priceText.replace(/[^\d.]/g, ''));
+                if (Number.isFinite(price) && (!cheapest || price < cheapest.price)) {
+                    const triggerText = await card.locator('.macro-trigger-value').innerText();
+                    cheapest = { price, trigger: triggerText.replace(/^\$/, '') };
+                }
             }
+
+            const nextButton = this.page.getByRole('button', { name: 'Next' });
+            if (await nextButton.isDisabled()) {
+                break;
+            }
+            const firstTrigger = await allCards.first().locator('.macro-trigger-value').innerText();
+            await nextButton.click();
+            await expect(allCards.first().locator('.macro-trigger-value')).not.toHaveText(firstTrigger, TIMEOUT);
         }
 
         if (!cheapest) {
@@ -191,11 +260,14 @@ exports.GlobalTags = class GlobalTags {
         return cheapest;
     }
 
-    // Click Buy on a specific tag (by trigger) from the Marketplace, opening the Razorpay checkout
+    // Click Buy on a specific tag (by trigger) from the Marketplace, opening the Razorpay checkout.
+    // Searches for the trigger first, since the tag may not be on the first Marketplace page.
     async clickBuyForTrigger(trigger){
         await this.goToMarketplace();
+        await this.page.getByPlaceholder('Search by name, trigger, tag, category or group...').fill(trigger);
         const card = this.page.locator('.macro-card.global-macro').filter({ hasText: `$${trigger}` });
         await card.getByRole('button', { name: 'Buy' }).click();
+        await this.page.getByRole('button', { name: /continue to payment/i }).click();
     }
 
     // Complete the Razorpay (test mode) checkout with a new one-time test card (Marketplace
@@ -213,16 +285,26 @@ exports.GlobalTags = class GlobalTags {
         await frame.locator('input[name="card.number"]').fill(card.number);
         await frame.locator('input[name="card.expiry"]').fill(card.expiry);
         await frame.locator('input[name="card.cvv"]').fill(card.cvv);
-        await frame.getByRole('button', { name: 'Continue' }).click();
-
-        // Razorpay may offer to save the new card for future payments - dismiss it if it appears
-        await this.page.waitForTimeout(4000);
-        frame = findFrame();
-        if (frame) {
-            const maybeLater = frame.getByRole('button', { name: 'Maybe later' });
-            if (await maybeLater.count() > 0) {
+        // Continue normally brings up Razorpay's "save this card?" prompt (dismissed with Maybe
+        // later) or opens the bank-simulation popup directly. Razorpay sometimes ignores the
+        // first Continue click, so click it again if neither shows up.
+        let bankWindow = null;
+        const popupPromise = this.page.waitForEvent('popup', TIMEOUT).then(p => (bankWindow = p)).catch(() => null);
+        const continueButton = frame.getByRole('button', { name: 'Continue' });
+        const maybeLater = frame.getByRole('button', { name: 'Maybe later' });
+        for (let attempt = 1; attempt <= 3 && !bankWindow; attempt++) {
+            await continueButton.click();
+            const promptShown = await maybeLater.waitFor({ timeout: 10000 }).then(() => true).catch(() => false);
+            if (promptShown) {
                 await maybeLater.click();
+                break;
             }
+        }
+
+        // Approve the payment in Razorpay's test-mode bank simulation
+        await popupPromise;
+        if (bankWindow) {
+            await bankWindow.locator('button.success').click();
         }
     }
 
@@ -274,7 +356,9 @@ exports.GlobalTags = class GlobalTags {
 
     // Verify a purchased tag now shows as unlocked ("Purchased") under My Global Tags
     async verifyTagPurchased(trigger){
-        await this.goToMyGlobalTags();
+        await expect(this.page.getByRole('heading', { name: 'Payment complete' })).toBeVisible(TIMEOUT);
+        await this.page.getByRole('button', { name: 'Stay here' }).click();
+        await this.goToMyGlobalTags('Purchased');
         const card = this.page.locator('.macro-card').filter({ hasText: `$${trigger}` });
         await expect(card).toBeVisible(TIMEOUT);
         await expect(card.getByText('Purchased')).toBeVisible(TIMEOUT);
@@ -283,12 +367,73 @@ exports.GlobalTags = class GlobalTags {
     // Verify a newly created tag is visible under My Global Tags, optionally checking the
     // type badge (Text, AI, API, File, ...) shown on the card
     async verifyTagCreated(trigger, type){
-        await this.goToMyGlobalTags();
+        await this.goToMyGlobalTags('My Listings');
         const card = this.page.locator('.macro-card').filter({ hasText: `$${trigger}` });
         await expect(card).toBeVisible(TIMEOUT);
         if (type) {
             await expect(card.locator('.macro-type')).toHaveText(new RegExp(type, 'i'), TIMEOUT);
         }
+    }
+
+    // ---- Editing a created tag (Marketplace tags can be updated but not deleted) ----
+
+    // Open a tag's editor from its card under My Listings
+    async openTagEditor(trigger){
+        await this.goToMyGlobalTags('My Listings');
+        await this.page.locator('.macro-card').filter({ hasText: `$${trigger}` }).locator('h3.macro-name').click();
+        await expect(this.page.locator('h2')).toHaveText('Edit Tag', TIMEOUT);
+    }
+
+    // Apply an edit and click Update; the app returns to My Listings once the update is saved
+    async editAndSave(trigger, description, applyEdit){
+        await this.openTagEditor(trigger);
+        await applyEdit();
+        await this.saveTag(trigger, description);
+        await expect(this.page).not.toHaveURL(/\/tags\/edit\//, TIMEOUT);
+    }
+
+    // Update a Text tag's description and content, then save
+    async editTextTag(trigger, description, content){
+        await this.editAndSave(trigger, description, async () => {
+            await this.page.locator('#macro-name').fill(description);
+            await this.page.locator('#macro-body-editor .ql-editor').click();
+            await this.page.keyboard.press('Control+A');
+            await this.page.keyboard.type(content);
+            await this.clearSelection();
+        });
+    }
+
+    // Update an AI tag's description and prompt data, then save
+    async editAiTag(trigger, description, promptData){
+        await this.editAndSave(trigger, description, async () => {
+            await this.page.locator('#macro-name').fill(description);
+            await this.page.locator('#macro-prompt-data-editor').fill(promptData);
+        });
+    }
+
+    // Update an API tag's description and URL, re-run the test call, then save
+    async editApiTag(trigger, description, url){
+        await this.editAndSave(trigger, description, async () => {
+            await this.page.locator('#macro-name').fill(description);
+            await this.page.locator('#api-url').fill(url);
+            await this.page.locator('#api-test-btn').click();
+            await expect(this.page.locator('#api-response-preview')).toContainText('200 OK', TIMEOUT);
+        });
+    }
+
+    // Update a File tag's description and attach another file, then save
+    async editFileTag(trigger, description, filePath){
+        await this.editAndSave(trigger, description, async () => {
+            await this.page.locator('#macro-name').fill(description);
+            await this.page.locator('#filetag-file-input-inline').setInputFiles(filePath);
+        });
+    }
+
+    // Verify a tag's card under My Listings shows its updated description
+    async verifyTagUpdated(trigger, description){
+        await this.goToMyGlobalTags('My Listings');
+        const card = this.page.locator('.macro-card').filter({ hasText: `$${trigger}` });
+        await expect(card.locator('h3.macro-name')).toHaveText(description, TIMEOUT);
     }
 
 }

@@ -2,7 +2,7 @@ const { test } = require('@playwright/test');
 const { GlobalTags } = require('../../../pages/globalTags');
 const { Signin } = require('../../../pages/signIn');
 
-test('Create a monetized Global AI tag and pay its Trigger Name Cost via Razorpay (test mode)', async ({ page }) => {
+test('Create and update a monetized Global AI tag', async ({ page }) => {
     const globalTags = new GlobalTags(page);
     const signIn = new Signin(page);
     const trigger = `gAiTag${Date.now()}`;
@@ -22,5 +22,13 @@ test('Create a monetized Global AI tag and pay its Trigger Name Cost via Razorpa
 
     await test.step('Verify the tag was created', async () => {
         await globalTags.verifyTagCreated(trigger, 'AI');
+    });
+
+    await test.step('Edit the tag', async () => {
+        await globalTags.editAiTag(trigger, 'Regression Global AI tag (edited)', 'Translate the selected text into French.');
+    });
+
+    await test.step('Verify the tag was updated', async () => {
+        await globalTags.verifyTagUpdated(trigger, 'Regression Global AI tag (edited)');
     });
 });

@@ -12,7 +12,7 @@ exports.website = class website {
 
     // Verifying Website is opened sucessfully
     async verifyWebite(){
-        await expect(this.page.locator("//div[@id='webapp-root']//img[contains(@src,'synctag-logo')]").nth(0)).toBeVisible();
+        await expect(this.page.locator("#webapp-root a.site-header__brand img.brand-mark").nth(0)).toBeVisible();
     }
 
     // Click Get Started for free button

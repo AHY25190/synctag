@@ -10,6 +10,7 @@ test('Create, edit and delete an API tag', async ({ page, context, extensionId }
 
     await test.step('Create the tag', async () => {
         await signIn.verifySignedIn('johnfigerro@gmail.com');
+        await myTags.open();
         await myTags.verifyPageOpened();
         await myTags.clickNewTag();
         await myTags.createApiTag(trigger, 'Regression API tag', 'GET', 'https://jsonplaceholder.typicode.com/todos/1');

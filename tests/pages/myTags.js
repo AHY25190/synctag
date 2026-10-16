@@ -98,7 +98,7 @@ exports.MyTags = class MyTags {
         await this.fillTriggerAndDescription(trigger, description);
         await this.selectTagType('API');
         await this.page.locator('#api-method').click();
-        await this.page.locator('.api-method-option', { hasText: method }).click();
+        await this.page.getByRole('listbox', { name: 'Select API method' }).getByRole('option', { name: method, exact: true }).click();
         await this.page.locator('#api-url').fill(url);
         await this.page.locator('#api-test-btn').click();
         await expect(this.page.locator('#api-response-preview')).toContainText('200 OK', TIMEOUT);
@@ -204,7 +204,7 @@ exports.MyTags = class MyTags {
     // Delete a tag: open its editor from the card, click Delete, then confirm in the modal
     async deleteTag(trigger){
         await this.clearSelection();
-        await this.page.locator('.macro-card').filter({ hasText: `$${trigger}` }).locator('h3.macro-name').click();
+        await this.openTagEditor(trigger);
         await this.page.locator('#tageditor-delete').click();
         await this.page.locator('.synctag-global-modal__footer button', { hasText: 'Delete' }).click();
     }

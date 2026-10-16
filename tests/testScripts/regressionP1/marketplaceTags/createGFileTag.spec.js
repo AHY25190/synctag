@@ -5,7 +5,7 @@ const { Signin } = require('../../../pages/signIn');
 
 const FILE_TAG_PATH = path.join(__dirname, '../../../utils/uploadfiles/testPdf.pdf');
 
-test('Create a monetized Global File tag and pay its Trigger Name Cost via Razorpay (test mode)', async ({ page }) => {
+test('Create and update a monetized Global File tag', async ({ page }) => {
     const globalTags = new GlobalTags(page);
     const signIn = new Signin(page);
     const trigger = `gFileTag${Date.now()}`;
@@ -25,5 +25,13 @@ test('Create a monetized Global File tag and pay its Trigger Name Cost via Razor
 
     await test.step('Verify the tag was created', async () => {
         await globalTags.verifyTagCreated(trigger, 'File');
+    });
+
+    await test.step('Edit the tag', async () => {
+        await globalTags.editFileTag(trigger, 'Regression Global File tag (edited)', FILE_TAG_PATH);
+    });
+
+    await test.step('Verify the tag was updated', async () => {
+        await globalTags.verifyTagUpdated(trigger, 'Regression Global File tag (edited)');
     });
 });

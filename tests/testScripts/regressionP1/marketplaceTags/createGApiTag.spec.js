@@ -2,7 +2,7 @@ const { test } = require('@playwright/test');
 const { GlobalTags } = require('../../../pages/globalTags');
 const { Signin } = require('../../../pages/signIn');
 
-test('Create a monetized Global API tag and pay its Trigger Name Cost via Razorpay (test mode)', async ({ page }) => {
+test('Create and update a monetized Global API tag', async ({ page }) => {
     const globalTags = new GlobalTags(page);
     const signIn = new Signin(page);
     const trigger = `gApiTag${Date.now()}`;
@@ -22,5 +22,13 @@ test('Create a monetized Global API tag and pay its Trigger Name Cost via Razorp
 
     await test.step('Verify the tag was created', async () => {
         await globalTags.verifyTagCreated(trigger, 'API');
+    });
+
+    await test.step('Edit the tag', async () => {
+        await globalTags.editApiTag(trigger, 'Regression Global API tag (edited)', 'https://jsonplaceholder.typicode.com/todos/2');
+    });
+
+    await test.step('Verify the tag was updated', async () => {
+        await globalTags.verifyTagUpdated(trigger, 'Regression Global API tag (edited)');
     });
 });
